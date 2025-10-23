@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using DevAtlasBackend.Models;
 using DevAtlasBackend.Services;
 using Microsoft.AspNetCore.Authorization;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -19,6 +20,13 @@ namespace DevAtlasBackend.Controllers
         {
             _mongoDbService = mongoDbService;
             _environment = environment;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetCourses()
+        {
+            var courses = await _mongoDbService.GetCoursesAsync();
+            return Ok(courses);
         }
 
         [HttpPost]
@@ -40,7 +48,7 @@ namespace DevAtlasBackend.Controllers
             };
 
             await _mongoDbService.CreateCourseAsync(course);
-            return Ok("Course info added successfully!");
+            return Ok(new { Message = "Course info added successfully!", CourseId = course.Id });
         }
 
         [HttpPost("CourseOutline")]
@@ -56,7 +64,7 @@ namespace DevAtlasBackend.Controllers
                 if (string.IsNullOrWhiteSpace(section.CourseId) || string.IsNullOrWhiteSpace(section.Title) ||
                     section.Order <= 0)
                 {
-                    return BadRequest("Course ID, title, and order are required for each section.");
+                    return BadRequest($"Invalid section data: CourseId: {section.CourseId}, Title: {section.Title}, Order: {section.Order}. All must be provided and Order must be a positive number.");
                 }
 
                 string? fileUrl = null;
@@ -68,17 +76,18 @@ namespace DevAtlasBackend.Controllers
                     var fileExtension = Path.GetExtension(section.File.FileName).ToLower();
                     if (!new[] { ".pdf", ".doc", ".ppt", ".pptx" }.Contains(fileExtension))
                     {
-                        return BadRequest("Invalid file format. Only PDF, DOC, PPT, PPTX allowed.");
+                        return BadRequest($"Invalid file format for section '{section.Title}'. Only PDF, DOC, PPT, PPTX allowed.");
                     }
 
                     var fileName = $"{Guid.NewGuid()}{fileExtension}";
-                    var filePath = Path.Combine(_environment.ContentRootPath, "Uploads", "Files", fileName);
-                    Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+                    var uploadsPath = Path.Combine(_environment.ContentRootPath, "Uploads", "Files");
+                    Directory.CreateDirectory(uploadsPath);
+                    var filePath = Path.Combine(uploadsPath, fileName);
                     using (var stream = new FileStream(filePath, FileMode.Create))
                     {
                         await section.File.CopyToAsync(stream);
                     }
-                    fileUrl = $"/Uploads/Files/{fileName}";
+                    fileUrl = $"/api/Uploads/Files/{fileName}";
                 }
 
                 // Handle video upload
@@ -87,17 +96,18 @@ namespace DevAtlasBackend.Controllers
                     var videoExtension = Path.GetExtension(section.Video.FileName).ToLower();
                     if (!new[] { ".mp4", ".mov", ".avi", ".mkv" }.Contains(videoExtension))
                     {
-                        return BadRequest("Invalid video format. Only MP4, MOV, AVI, MKV allowed.");
+                        return BadRequest($"Invalid video format for section '{section.Title}'. Only MP4, MOV, AVI, MKV allowed.");
                     }
 
                     var videoName = $"{Guid.NewGuid()}{videoExtension}";
-                    var videoPath = Path.Combine(_environment.ContentRootPath, "Uploads", "Videos", videoName);
-                    Directory.CreateDirectory(Path.GetDirectoryName(videoPath));
+                    var uploadsPath = Path.Combine(_environment.ContentRootPath, "Uploads", "Videos");
+                    Directory.CreateDirectory(uploadsPath);
+                    var videoPath = Path.Combine(uploadsPath, videoName);
                     using (var stream = new FileStream(videoPath, FileMode.Create))
                     {
                         await section.Video.CopyToAsync(stream);
                     }
-                    videoUrl = $"/Uploads/Videos/{videoName}";
+                    videoUrl = $"/api/Uploads/Videos/{videoName}";
                 }
 
                 var outline = new CourseOutline

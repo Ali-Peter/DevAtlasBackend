@@ -3,6 +3,7 @@ using DevAtlasBackend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,9 +16,14 @@ builder.Services.AddSwaggerGen(c =>
 });
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", builder =>
+    options.AddPolicy("AllowFrontend", builder =>
     {
-        builder.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+        builder.WithOrigins(
+            "http://localhost:5173",
+            "https://devatlas-frontend.up.railway.app"
+        )
+        .AllowAnyMethod()
+        .AllowAnyHeader();
     });
 });
 builder.Services.AddSingleton<MongoDbService>();
@@ -33,9 +39,10 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        ValidIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "DevAtlasAPI",
+        ValidAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "DevAtlasFrontend",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+            Environment.GetEnvironmentVariable("JWT_KEY") ?? throw new InvalidOperationException("JWT_KEY is not set")))
     };
 });
 
@@ -48,8 +55,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "DevAtlas API v1"));
 }
-app.UseStaticFiles(); // Serve static files from Uploads
-app.UseCors("AllowAll");
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(Path.Combine(builder.Environment.ContentRootPath, "Uploads")),
+    RequestPath = "/api/Uploads"
+});
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

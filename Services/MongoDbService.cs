@@ -11,8 +11,9 @@ namespace DevAtlasBackend.Services
 
         public MongoDbService(IConfiguration configuration)
         {
-            var mongoClient = new MongoClient(configuration.GetConnectionString("MongoDb"));
-            var mongoDatabase = mongoClient.GetDatabase(configuration["DatabaseName"]);
+            var mongoClient = new MongoClient(Environment.GetEnvironmentVariable("MONGO_CONNECTION") ?? 
+                throw new InvalidOperationException("MONGO_CONNECTION is not set"));
+            var mongoDatabase = mongoClient.GetDatabase(Environment.GetEnvironmentVariable("MONGO_DATABASE_NAME") ?? "DevAtlasDb");
             _usersCollection = mongoDatabase.GetCollection<User>("Users");
             _coursesCollection = mongoDatabase.GetCollection<Course>("Courses");
             _courseOutlinesCollection = mongoDatabase.GetCollection<CourseOutline>("CourseOutlines");
@@ -26,6 +27,9 @@ namespace DevAtlasBackend.Services
             await _usersCollection.InsertOneAsync(user);
 
         // Course methods
+        public async Task<List<Course>> GetCoursesAsync() =>
+            await _coursesCollection.Find(_ => true).ToListAsync();
+
         public async Task CreateCourseAsync(Course course) =>
             await _coursesCollection.InsertOneAsync(course);
 
