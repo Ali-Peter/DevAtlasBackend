@@ -77,4 +77,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
+// ADD THIS BEFORE app.Run();
+app.MapGet("/health", () => "BACKEND IS ALIVE! 🚀");
+
 app.Run();
