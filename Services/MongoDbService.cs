@@ -11,8 +11,18 @@ namespace DevAtlasBackend.Services
 
         public MongoDbService(IConfiguration configuration)
         {
-            var mongoClient = new MongoClient(configuration["ConnectionStrings:MongoDb"]);
-            var mongoDatabase = mongoClient.GetDatabase(configuration["DatabaseName"]);
+            // PRIORITY: Environment Variables (Azure)
+            var connectionString = Environment.GetEnvironmentVariable("MONGO_CONNECTION")
+                ?? configuration.GetConnectionString("MongoDb")
+                ?? throw new InvalidOperationException("MONGO_CONNECTION not set");
+
+            var databaseName = Environment.GetEnvironmentVariable("MONGO_DATABASE_NAME")
+                ?? configuration["DatabaseName"]
+                ?? "DevAtlasDb";
+
+            var mongoClient = new MongoClient(connectionString);
+            var mongoDatabase = mongoClient.GetDatabase(databaseName);
+
             _usersCollection = mongoDatabase.GetCollection<User>("Users");
             _coursesCollection = mongoDatabase.GetCollection<Course>("Courses");
             _courseOutlinesCollection = mongoDatabase.GetCollection<CourseOutline>("CourseOutlines");

@@ -7,7 +7,7 @@ using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add services
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddSwaggerGen(c =>
@@ -17,22 +17,25 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", builder =>
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        builder.WithOrigins(
-            "http://localhost:5173",
-            "https://devatlas-frontend.up.railway.app"
-        )
-        .AllowAnyMethod()
-        .AllowAnyHeader();
+        policy.WithOrigins(
+                "http://localhost:5173",
+                "https://devatlas-frontend.up.railway.app"
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 
 builder.Services.AddSingleton<MongoDbService>();
 
-// ✅ Read JWT settings from appsettings.json
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]);
+// SECURE JWT: Read from Environment Variables (Azure)
+var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
+    ?? throw new InvalidOperationException("JWT_KEY is not set in environment variables.");
+
+var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "DevAtlasAPI";
+var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "DevAtlasFrontend";
 
 builder.Services.AddAuthentication(options =>
 {
@@ -47,15 +50,15 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtSettings["Issuer"],
-        ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(key)
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -70,10 +73,8 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseCors("AllowFrontend");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
