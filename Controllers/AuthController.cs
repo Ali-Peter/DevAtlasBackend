@@ -75,21 +75,26 @@ namespace DevAtlasBackend.Controllers
 
         private string GenerateJwtToken(User user)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var keyStr = Environment.GetEnvironmentVariable("JWT_KEY")
+                ?? throw new InvalidOperationException("JWT_KEY is missing");
 
+            var issuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "DevAtlasAPI";
+            var audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "DevAtlasFrontend";
             var expiryMinutes = int.Parse(Environment.GetEnvironmentVariable("JWT_EXPIRY_MINUTES") ?? "60");
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(keyStr));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.Name, user.FirstName + " " + user.LastName)
+                new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}")
             };
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
+                issuer: issuer,
+                audience: audience,
                 claims: claims,
                 expires: DateTime.Now.AddMinutes(expiryMinutes),
                 signingCredentials: creds
