@@ -1,0 +1,2 @@
+# app.yaml
+startupCommand: dotnet DevAtlasBackend.dll
