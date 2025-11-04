@@ -78,6 +78,8 @@ namespace DevAtlasBackend.Controllers
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+            var expiryMinutes = int.Parse(Environment.GetEnvironmentVariable("JWT_EXPIRY_MINUTES") ?? "60");
+
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Email),
@@ -89,7 +91,7 @@ namespace DevAtlasBackend.Controllers
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(int.Parse(_configuration["Jwt:ExpiryMinutes"])),
+                expires: DateTime.Now.AddMinutes(expiryMinutes),
                 signingCredentials: creds
             );
 
