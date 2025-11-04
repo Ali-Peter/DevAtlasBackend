@@ -32,7 +32,7 @@ steps:
 - task: AzureWebApp@1
   displayName: 'Deploy to Azure App Service'
   inputs:
-    azureSubscription: 'Azure subscription 1'
+    azureSubscription: 'edc12bc5-01c0-48c6-8cbb-feaea609328f'  # ← YOUR REAL ID
     appType: 'webAppLinux'
     appName: 'devatlas-backend'
     package: '$(Build.ArtifactStagingDirectory)/*.zip'
