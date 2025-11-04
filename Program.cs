@@ -21,10 +21,12 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:5173",
-                "https://devatlas-frontend.up.railway.app"
+                "https://ashy-forest-0480f531e.3.azurestaticapps.net",
+                "https://devatlas-backend-dyh3gzdtdkecg3cm.southafricanorth-01.azurewebsites.net"
             )
             .AllowAnyMethod()
-            .AllowAnyHeader();
+            .AllowAnyHeader()
+            .AllowCredentials();
     });
 });
 
