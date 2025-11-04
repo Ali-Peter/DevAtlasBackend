@@ -1,4 +1,3 @@
-using Microsoft.OpenApi.Models;
 using DevAtlasBackend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -9,10 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+
+// Add Swagger (NOT OpenAPI)
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "DevAtlas API", Version = "v1" });
+    c.SwaggerDoc("v1", new() { Title = "DevAtlas API", Version = "v1" });
 });
 
 builder.Services.AddCors(options =>
@@ -61,7 +61,6 @@ var app = builder.Build();
 // Pipeline
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "DevAtlas API v1"));
 }
@@ -77,7 +76,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// ADD THIS BEFORE app.Run();
-app.MapGet("/health", () => "BACKEND IS ALIVE! 🚀");
+// Health Check
+app.MapGet("/health", () => "BACKEND IS ALIVE!");
 
 app.Run();
